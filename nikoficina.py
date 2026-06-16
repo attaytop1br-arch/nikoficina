@@ -1,169 +1,81 @@
 import streamlit as st
-import pandas as pd
-import requests
-import io
-import urllib3
+import google.generativeai as genai
 
-# Esconde o aviso de "conexão não verificada" no terminal
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Configuração da página e Dark Mode nativo para evitar ecrãs brancos no telemóvel
+st.set_page_config(page_title="Guia de Peças AI - Nikson Eletrónica", page_icon="⚡", layout="centered")
 
-# Configuração da página
-st.set_page_config(page_title="Guia de Peças - Nikson Eletrônica", page_icon="⚡", layout="centered")
-
-# --- INJEÇÃO DE CSS (MOTION DESIGN E ESTÉTICA) ---
+# --- INJEÇÃO DE CSS ---
 st.markdown("""
     <style>
-    /* Destaque da Barra de Pesquisa */
-    div[data-baseweb="input"] > div {
-        background-color: #2D2D2D !important;
-        border: 2px solid #555 !important;
-        border-radius: 10px !important;
-    }
-    div[data-baseweb="input"] > div > input {
-        font-size: 26px !important;
-        font-weight: bold;
-        text-align: center;
-        padding: 15px !important;
-        color: #FFFFFF !important;
-    }
-    
-    /* Motion Design: Animação pulsante */
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-    }
-    
-    .instrucao {
-        text-align: center;
-        font-size: 28px;
-        font-weight: bold;
-        color: #FF4B4B;
-        margin-top: 20px;
-    }
-    
-    .bouncing-arrow {
-        text-align: center;
-        font-size: 45px;
-        animation: pulse 1.5s infinite;
-        margin-bottom: -15px;
-    }
-    
-    /* Estilização dos Cartões */
-    .card-componente {
+    .stApp { background-color: #0E1117 !important; color: #FFFFFF !important; }
+    .stApp header { background-color: transparent !important; }
+    div[data-baseweb="input"] > div { background-color: #2D2D2D !important; border: 2px solid #555 !important; border-radius: 10px !important; }
+    div[data-baseweb="input"] > div > input { font-size: 26px !important; font-weight: bold; text-align: center; padding: 15px !important; color: #FFFFFF !important; }
+    .instrucao { text-align: center; font-size: 28px; font-weight: bold; color: #FF4B4B; margin-top: 20px; margin-bottom: 20px; }
+    .resposta-ia { 
         background-color: #1E1E1E; 
-        padding: 25px;
-        border-radius: 12px;
-        border-left: 8px solid #FF4B4B;
-        margin-bottom: 20px;
-        box-shadow: 2px 2px 15px rgba(0,0,0,0.5);
-    }
-    
-    .titulo-peca {
-        font-size: 36px;
-        font-weight: bold;
-        color: #FFFFFF;
-        margin: 0;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #333;
-        margin-bottom: 15px;
-    }
-    
-    .texto-grande {
-        font-size: 24px;
-        color: #DDDDDD;
-        line-height: 1.8;
-    }
-    
-    .especificacoes {
-        font-size: 20px;
-        color: #A0AEC0;
-        margin-top: 10px;
-        font-family: monospace;
-        background: #1A202C;
-        padding: 12px;
-        border-radius: 6px;
-        border-left: 4px solid #F6E05E;
-    }
-    
-    .equivalentes {
-        font-size: 30px;
-        color: #00E676; 
-        font-weight: bold;
-        display: block;
-        background-color: #111;
-        padding: 20px; /* Padding maior para respiro */
-        border-radius: 8px;
-        margin-top: 10px;
-        line-height: 1.4;
-    }
-    
-    .dica {
-        background-color: #2D3748;
-        padding: 20px;
-        border-radius: 8px;
-        font-size: 22px;
-        color: #E2E8F0;
+        padding: 30px; 
+        border-radius: 12px; 
+        border-left: 8px solid #4CAF50; 
         margin-top: 20px;
-        border-left: 5px solid #4299E1;
+        box-shadow: 2px 2px 15px rgba(0,0,0,0.5); 
+        font-size: 18px; 
+        line-height: 1.6;
     }
     </style>
 """, unsafe_allow_html=True)
 
-URL_GOOGLE_SHEETS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqOEepf0xDIwyoEHws00rjvDcjbOWe40rFoymzA-2XvUk-nW3eFv7h7guWtbCOvGIHCUNBp2KtJEfG/pub?gid=725739881&single=true&output=csv"
-
-@st.cache_data(ttl=60)
-def carregar_dados(url):
-    try:
-        resposta = requests.get(url, verify=False)
-        resposta.raise_for_status() 
-        resposta.encoding = 'utf-8'
-        df = pd.read_csv(io.StringIO(resposta.text))
-        df = df.astype(str).fillna("")
-        return df
-    except Exception as e:
-        st.error(f"Erro ao ler a planilha: {e}")
-        return pd.DataFrame()
-
-df = carregar_dados(URL_GOOGLE_SHEETS)
-
-# Cabeçalho
-st.markdown("<h1 style='text-align: center; font-size: 50px; margin-bottom: 0px;'>⚡ Nikson Eletrônica</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 24px; color: gray;'>Áudio Profissional</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; font-size: 50px; margin-bottom: 0px;'>⚡ Nikson Eletrónica</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 24px; color: gray;'>Assistente IA de Bancada</p>", unsafe_allow_html=True)
 st.write("---")
 
-if not df.empty:
-    st.markdown('<div class="instrucao">O QUE VOCÊ ESTÁ PROCURANDO HOJE?</div>', unsafe_allow_html=True)
-    st.markdown('<div class="bouncing-arrow">👇</div>', unsafe_allow_html=True)
-    
-    busca = st.text_input("", placeholder="Ex: IRFB4227, 2SC5200...").strip().upper()
-    
-    st.write("---")
-    
-    if busca:
-        resultado = df[df['Componente'].str.contains(busca, case=False, na=False) | 
-                       df['Equivalentes'].str.contains(busca, case=False, na=False)]
-        
-        if not resultado.empty:
-            st.markdown(f"<h3 style='font-size: 26px; color: #4CAF50;'>✅ Encontrado: {len(resultado)} opção(ões) para <b>'{busca}'</b></h3>", unsafe_allow_html=True)
-            
-            for index, row in resultado.iterrows():
-                especs_texto = row['Especificacoes'] if 'Especificacoes' in df.columns else "Sem informações."
-                
-                card_html = f"""<div class="card-componente">
-<div class="titulo-peca">📌 {row['Componente']}</div>
-<div class="texto-grande"><b>Categoria:</b> {row['Tipo']}</div>
-<div class="especificacoes"><b>⚙️ Especificações:</b> {especs_texto}</div>
-<div class="texto-grande" style="margin-top: 15px;"><b>Equivalentes:</b> 
-<span class="equivalentes">{row['Equivalentes']}</span>
-</div>
-<div class="dica"><b>💡 Dica de Bancada:</b><br>{row['Observacoes']}</div>
-</div>"""
-                st.markdown(card_html, unsafe_allow_html=True)
-        else:
-            st.markdown(f"<h3 style='font-size: 26px; color: #FF4B4B;'>⚠️ A peça '{busca}' não está na lista.</h3>", unsafe_allow_html=True)
-else:
-    st.warning("A aguardar ligação...")
+# --- CONFIGURAÇÃO DA API ---
+try:
+    # Tenta obter a chave guardada nos Secrets do Streamlit
+    CHAVE_API = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=CHAVE_API)
+    modelo = genai.GenerativeModel('gemini-1.5-flash') 
+except Exception as e:
+    st.error("⚠️ Erro crítico: A chave GEMINI_API_KEY não foi encontrada nos Secrets. Por favor, adicione a chave no painel do Streamlit.")
+    st.stop()
 
-# Assinatura no rodapé
+st.markdown('<div class="instrucao">QUAL É O CÓDIGO DO COMPONENTE?</div>', unsafe_allow_html=True)
+
+busca = st.text_input("", placeholder="Ex: p20nk50, 20n50k, s20531D...").strip()
+
+if busca:
+    with st.spinner("🧠 A analisar o componente e a procurar equivalentes..."):
+        
+        # O prompt detalhado que funciona sem precisar de ferramentas externas
+        prompt = f"""
+        És um engenheiro eletrónico sénior a ajudar um técnico de bancada muito experiente.
+        O técnico tem em mãos um componente e leu a seguinte referência: "{busca}"
+        
+        Atenção: Na bancada é normal omitirem-se prefixos (ex: 20n50k significa FQA20N50 ou STP20NK50Z) ou confundirem-se letras devido ao desgaste.
+        A tua missão é deduzir qual é o componente exato e fornecer as especificações reais de acordo com os datasheets da indústria.
+        
+        Responde ESTRITAMENTE neste formato Markdown:
+        
+        ### 📌 Componente Identificado: [Nome Correto e Completo]
+        **Categoria:** [Ex: MOSFET N-Channel, Transistor BJT, etc.]
+        **⚙️ Especificações Originais:** [Tensão, Corrente, Potência, etc.]
+        
+        ---
+        ### 🔄 Equivalentes Recomendados
+        * **[Componente 1]:** [Especificações e fiabilidade]
+        * **[Componente 2]:** [Especificações e fiabilidade]
+        
+        ---
+        ### 💡 Dicas de Bancada
+        [Dicas para a reparação: o que costuma queimar junto com esta peça, avisos sobre isolamento ou falsificações no mercado.]
+        """
+        
+        try:
+            # Chamada direta e limpa, à prova de falhas
+            resposta = modelo.generate_content(prompt)
+            st.markdown(f'<div class="resposta-ia">{resposta.text}</div>', unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Ocorreu um erro ao comunicar com a IA: {e}")
+
+# Rodapé
 st.markdown("<br><hr><p style='text-align: center; color: #666; font-size: 14px;'>Desenvolvido com ⚡ por Otto</p>", unsafe_allow_html=True)
