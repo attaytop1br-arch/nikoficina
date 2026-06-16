@@ -8,17 +8,23 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Configuração da página
-st.set_page_config(page_title="Guia de Peças - Oficina", page_icon="⚡", layout="centered")
+st.set_page_config(page_title="Guia de Peças - Nikson Eletrônica", page_icon="⚡", layout="centered")
 
 # --- INJEÇÃO DE CSS (MOTION DESIGN E ESTÉTICA) ---
 st.markdown("""
     <style>
-    /* Aumentando a fonte da barra de pesquisa */
+    /* Destaque da Barra de Pesquisa */
+    div[data-baseweb="input"] > div {
+        background-color: #2D2D2D !important;
+        border: 2px solid #555 !important;
+        border-radius: 10px !important;
+    }
     div[data-baseweb="input"] > div > input {
         font-size: 26px !important;
         font-weight: bold;
         text-align: center;
         padding: 15px !important;
+        color: #FFFFFF !important;
     }
     
     /* Motion Design: Animação pulsante */
@@ -69,7 +75,6 @@ st.markdown("""
         line-height: 1.8;
     }
     
-    /* Novo bloco de estilo para Especificações */
     .especificacoes {
         font-size: 20px;
         color: #A0AEC0;
@@ -87,9 +92,10 @@ st.markdown("""
         font-weight: bold;
         display: block;
         background-color: #111;
-        padding: 10px;
+        padding: 20px; /* Padding maior para respiro */
         border-radius: 8px;
-        margin-top: 5px;
+        margin-top: 10px;
+        line-height: 1.4;
     }
     
     .dica {
@@ -111,20 +117,17 @@ def carregar_dados(url):
     try:
         resposta = requests.get(url, verify=False)
         resposta.raise_for_status() 
-        
-        # SOLUÇÃO DO BUG: Forçando a leitura correta dos acentos brasileiros (UTF-8)
         resposta.encoding = 'utf-8'
-        
         df = pd.read_csv(io.StringIO(resposta.text))
         df = df.astype(str).fillna("")
         return df
     except Exception as e:
-        st.error(f"Erro detalhado ao ler a planilha: {e}")
+        st.error(f"Erro ao ler a planilha: {e}")
         return pd.DataFrame()
 
 df = carregar_dados(URL_GOOGLE_SHEETS)
 
-# Cabeçalho da Aplicação
+# Cabeçalho
 st.markdown("<h1 style='text-align: center; font-size: 50px; margin-bottom: 0px;'>⚡ Nikson Eletrônica</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; font-size: 24px; color: gray;'>Áudio Profissional</p>", unsafe_allow_html=True)
 st.write("---")
@@ -133,7 +136,7 @@ if not df.empty:
     st.markdown('<div class="instrucao">O QUE VOCÊ ESTÁ PROCURANDO HOJE?</div>', unsafe_allow_html=True)
     st.markdown('<div class="bouncing-arrow">👇</div>', unsafe_allow_html=True)
     
-    busca = st.text_input("", placeholder="Ex: IRFB4227, 2SC5200, TL072...").strip().upper()
+    busca = st.text_input("", placeholder="Ex: IRFB4227, 2SC5200...").strip().upper()
     
     st.write("---")
     
@@ -145,27 +148,22 @@ if not df.empty:
             st.markdown(f"<h3 style='font-size: 26px; color: #4CAF50;'>✅ Encontrado: {len(resultado)} opção(ões) para <b>'{busca}'</b></h3>", unsafe_allow_html=True)
             
             for index, row in resultado.iterrows():
-             for index, row in resultado.iterrows():
+                especs_texto = row['Especificacoes'] if 'Especificacoes' in df.columns else "Sem informações."
                 
-                # Lógica para as especificações
-                especs_texto = row['Especificacoes'] if 'Especificacoes' in df.columns else "Coluna 'Especificacoes' não encontrada."
-                if str(especs_texto).strip() == "" or str(especs_texto).lower() == "nan":
-                    especs_texto = "Sem especificações cadastradas."
-
-                # HTML encostado na margem esquerda para não virar "bloco de código"
                 card_html = f"""<div class="card-componente">
 <div class="titulo-peca">📌 {row['Componente']}</div>
 <div class="texto-grande"><b>Categoria:</b> {row['Tipo']}</div>
 <div class="especificacoes"><b>⚙️ Especificações:</b> {especs_texto}</div>
-<div class="texto-grande" style="margin-top: 15px;"><b>Pode usar sem medo:</b> 
+<div class="texto-grande" style="margin-top: 15px;"><b>Equivalentes:</b> 
 <span class="equivalentes">{row['Equivalentes']}</span>
 </div>
 <div class="dica"><b>💡 Dica de Bancada:</b><br>{row['Observacoes']}</div>
 </div>"""
-                
                 st.markdown(card_html, unsafe_allow_html=True)
         else:
             st.markdown(f"<h3 style='font-size: 26px; color: #FF4B4B;'>⚠️ A peça '{busca}' não está na lista.</h3>", unsafe_allow_html=True)
-            st.info("Abra a planilha no celular e cadastre esta peça para não esquecer depois!")
 else:
-    st.warning("A aguardar ligação à base de dados do Google Sheets...")
+    st.warning("A aguardar ligação...")
+
+# Assinatura no rodapé
+st.markdown("<br><hr><p style='text-align: center; color: #666; font-size: 14px;'>Desenvolvido com ⚡ por Otto</p>", unsafe_allow_html=True)
